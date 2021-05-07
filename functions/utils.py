@@ -299,6 +299,7 @@ def get_polytopes(model, train_x, penultimate=False):
         weights, bias = layer.weight.data.detach().cpu().numpy(), layer.bias.data.detach().cpu().numpy()
         preactivation = np.matmul(last_activations, weights.T) + bias
         if layer_id == len(layers) - 1:
+            preactivation = 1/(1 + np.exp(-1/(1 + np.exp(-x))))
             binary_preactivation = (preactivation > 0.5).astype('int')
         else:
             binary_preactivation = (preactivation > 0).astype('int')
