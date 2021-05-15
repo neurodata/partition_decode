@@ -42,16 +42,6 @@ def ger_matrix_from_poly(model, dataset, poly_m):
 
 def get_label_pred(model, dataset, computeOver=500, batchSize=50):
 
-    # it = iter(dataset.repeat(-1).shuffle(5000, seed=1).batch(batchSize))
-    # N = computeOver//batchSize
-    # batches = [next(it) for i in range(N)]
-    
-    # test_y = [batch[1] for batch in batches]
-    
-    # ds = dataset.repeat(-1).shuffle(5000, seed=1).batch(batchSize)
-    # # preds = model.predict(x=ds, steps=N, verbose=False)
-    # preds = model.predict(x=dataset)
-    # pred_y = np.argmax(preds, axis=-1)
     
     model.compile(optimizer='adam',
 			loss='sparse_categorical_crossentropy',

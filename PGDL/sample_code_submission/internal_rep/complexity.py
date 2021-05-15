@@ -3,28 +3,17 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from collections import defaultdict
-import json
-import pickle
-import os
-import time 
-import sys
-import random
-# from computecomplexityfinal import *
-# from complexitymeasures import *
+
 from tensorflow.keras.models import load_model
 import matplotlib.pyplot as plt
 from scipy.stats import * 
-# from augment import *
-import argparse
 
-import keract
 from tensorflow.keras import backend as K
 
-# from complexity_ir import complexityIR
 from .matrix_funcs import ger_matrix_from_poly, compute_complexity
 
 
-def complexity(model, dataset, program_dir, measure = 'KF-ratio', augment=None):
+def complexity(model, dataset, program_dir, measure = 'KF-ratio'):
 	'''
 	Wrapper Complexity Function to combine various complexity measures
 
@@ -37,9 +26,7 @@ def complexity(model, dataset, program_dir, measure = 'KF-ratio', augment=None):
 	program_dir : str, optional
 		The program directory to store and retrieve additional data
 	measure : str, optional
-		The complexity measure to compute, defaults to our winning solution of PGDL
-	augment : str, optional
-		Augmentation method to use, only relevant for some measures
+		The complexity measure to compute
 
 	Returns
 	-------
@@ -48,10 +35,7 @@ def complexity(model, dataset, program_dir, measure = 'KF-ratio', augment=None):
 	'''
 
 	########## INTERNAL REPRESENTATION ################# 
-	if measure == 'Schatten':
-		complexityScore = complexityIR(model, dataset, program_dir=program_dir, method=measure)
-	else:
-		complexityScore = complexityIR(model, dataset, program_dir=program_dir)
+	complexityScore = complexityIR(model, dataset, program_dir=program_dir, method=measure)
 		
 	print('-------Final Scores---------', complexityScore)
 	return complexityScore
