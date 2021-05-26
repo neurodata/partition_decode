@@ -12,12 +12,11 @@ import pandas as pd
 
 import copy
 
-def get_matrix_from_poly(model, dataset, poly_m, batch_size=500):
+def ger_matrix_from_poly(model, dataset, poly_m):
     # L_matrices = {'0/1': [], 'true_label':[], 'est_label':[], 'est_poster':[]}
     L_matrices = []
-    # test_y, pred_y, test_acc = get_label_pred(model, dataset, batch_size=batch_size)
-    pred_y = get_label_pred(model, dataset, batch_size=batch_size)
-
+    test_y, pred_y, test_acc = get_label_pred(model, dataset)
+    print(pred_y.shape, poly_m.shape)
     unique_poly = np.unique(poly_m)
     n_poly = len(unique_poly)
 
@@ -37,33 +36,41 @@ def get_matrix_from_poly(model, dataset, poly_m, batch_size=500):
         # L_matrices[key].append(L_mat)
 
     # gen_gap = abs((1-test_acc) - (1-train_acc))
-    # test_gen_err = (1-test_acc)
-    return np.array(L_mat) #, test_gen_err
+    test_gen_err = (1-test_acc)
+    return np.array(L_mat), test_gen_err
 
 
-def get_label_pred(model, dataset, batch_size=500):
+def get_label_pred(model, dataset, computeOver=500, batchSize=50):
 
+    it = iter(dataset.repeat(-1).shuffle(50000, seed=1).batch(batchSize))
+    N = computeOver//batchSize
+    batches = [next(it) for i in range(N)]
     
-    # model.compile(optimizer='adam',
-		# 	loss='sparse_categorical_crossentropy',
-		# 	metrics=['accuracy'])
+    test_y = [batch[1] for batch in batches]
+    
+    # ds = dataset.repeat(-1).shuffle(50000, seed=1).batch(batchSize)
+    # preds = model.predict(x=ds, steps=N, verbose=False)
+    # print(preds.shape)
+    # preds = model.predict(x=dataset)
+    # print(preds.shape)
+    # pred_y = np.argmax(preds, axis=-1)
+    
+    model.compile(optimizer='adam',
+			loss='sparse_categorical_crossentropy',
+			metrics=['accuracy'])
             
     acc, size = 0, 0
-    test_y = []
-    
-    # for batch in batches:
+    y_true = []
     preds = []
-    for x, y in dataset.batch(batch_size):
-        # test_loss, test_acc = model.evaluate(x, y, verbose=False)
-        # acc += test_acc * len(y)
-        # size += len(y)
-        preds.extend(model.predict(x))
-        # test_y.extend(y)
-    # acc = acc / size
+    for batch in batches:
+        test_loss, test_acc = model.evaluate(batch[0], batch[1], verbose=False)
+        acc += test_acc * len(batch[1])
+        size += len(batch[1])
+        preds.extend(model.predict(batch[0]))
+    acc = acc / size
     pred_y = np.argmax(preds, axis=-1)
-    # print(pred_y.shape)
-
-    return pred_y #test_y, pred_y, acc
+    print(pred_y.shape)
+    return test_y, pred_y, acc
 
 ##********** Matrix ranks *************##
 def get_stable_rank(m):
@@ -124,11 +131,11 @@ def compute_complexity(X, k=5):
 
 #   for i in range(len(X)):
     rep = X
-    # plot_dict['ranks'].append(matrix_rank(rep))
-    # plot_dict['stable_ranks'].append(get_stable_rank(rep))
-    # avg_c, modularity = graph_metrics(rep)
-    # plot_dict['avg_clusters'].append(avg_c)
-    # plot_dict['modularity'].append(modularity)
+    plot_dict['ranks'].append(matrix_rank(rep))
+    plot_dict['stable_ranks'].append(get_stable_rank(rep))
+    avg_c, modularity = graph_metrics(rep)
+    plot_dict['avg_clusters'].append(avg_c)
+    plot_dict['modularity'].append(modularity)
     KF_norms, KF_ratios, KF_kers, Schattens = get_KF_Schatten_norms(rep, num_k=k)
     plot_dict['KF-raw'].append(KF_norms)
     plot_dict['KF-ratio'].append(KF_ratios)

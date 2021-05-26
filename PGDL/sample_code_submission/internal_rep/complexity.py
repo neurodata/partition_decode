@@ -10,7 +10,11 @@ from scipy.stats import *
 
 from tensorflow.keras import backend as K
 
-from .matrix_funcs import ger_matrix_from_poly, compute_complexity
+from keras.utils import multi_gpu_model
+
+
+# from complexity_ir import complexityIR
+from .matrix_funcs import get_matrix_from_poly, compute_complexity
 
 
 def complexity(model, dataset, program_dir, measure = 'KF-ratio'):
@@ -34,8 +38,25 @@ def complexity(model, dataset, program_dir, measure = 'KF-ratio'):
 		complexity measure
 	'''
 
+	# # Create a MirroredStrategy.
+	# strategy = tf.distribute.MirroredStrategy()
+	# print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
+
+	# # Open a strategy scope.
+	# with strategy.scope():
+	# # Everything that creates variables should be under the strategy scope.
+	# # In general this is only model construction & `compile()`.
+	# # for batch in batches:
+	# 	model.compile(optimizer='adam',
+	# 		loss='sparse_categorical_crossentropy',
+	# 		metrics=['accuracy'])
+
+
 	########## INTERNAL REPRESENTATION ################# 
+	# if measure == 'Schatten':
 	complexityScore = complexityIR(model, dataset, program_dir=program_dir, method=measure)
+	# else:
+		# complexityScore = complexityIR(model, dataset, program_dir=program_dir)
 		
 	print('-------Final Scores---------', complexityScore)
 	return complexityScore
@@ -43,7 +64,7 @@ def complexity(model, dataset, program_dir, measure = 'KF-ratio'):
 
 
 
-def complexityIR(model, dataset, program_dir=None, method="KF-raw"):
+def complexityIR(model, dataset, program_dir=None, method="KF-kernel"):
 
 	'''
 	Function to calculate internal representation based complexity measures
@@ -63,17 +84,18 @@ def complexityIR(model, dataset, program_dir=None, method="KF-raw"):
 		complexity measure
 	'''
 
-	layers = []
-	computeOver = 500
-	batchSize = 50
-	N = computeOver//batchSize
-	
-	
-	poly_m = get_polytope(model, dataset, computeOver=500, batchSize=50)
+	# try:
+   	# 	model = multi_gpu_model(model)
+	# except:
+	# 	pass
+
+	layers = []	
+	batch_size=500
+	poly_m = get_polytope(model, dataset, batch_size=batch_size)
 	# poly_m = polytope_activations(model, dataset)
 	print("********", poly_m.shape, np.unique(poly_m).shape) 
 
-	L_mat, gen_err = ger_matrix_from_poly(model, dataset, poly_m)
+	L_mat = get_matrix_from_poly(model, dataset, poly_m, batch_size=batch_size)
 	complexity_dict = compute_complexity(L_mat, k=1)
 
 	if method in complexity_dict:
@@ -84,17 +106,15 @@ def complexityIR(model, dataset, program_dir=None, method="KF-raw"):
 	return -1
 
 
-def get_polytope(model, dataset, computeOver=500, batchSize=50):
+def get_polytope(model, dataset, batch_size=500):
 	# print("**** hello from get_polytope")
 	layers = []
-	
-	# it = iter(dataset.repeat(-1).shuffle(5000, seed=1).batch(batchSize))
-	# N = computeOver//batchSize
-	# batches = [next(it) for i in range(N)]
+
 	polytope_memberships_list = []
 
+	
 	# for batch in batches:
-	for x, y in dataset.batch(500):
+	for x, y in dataset.batch(batch_size):
 
 		batch_ = x
 		
