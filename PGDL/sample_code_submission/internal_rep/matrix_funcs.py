@@ -16,7 +16,7 @@ def get_matrix_from_poly(model, dataset, poly_m, batch_size=500):
     # L_matrices = {'0/1': [], 'true_label':[], 'est_label':[], 'est_poster':[]}
     L_matrices = []
     # test_y, pred_y, test_acc = get_label_pred(model, dataset, batch_size=batch_size)
-    pred_y = get_label_pred(model, dataset, batch_size=batch_size)
+    # pred_y = get_label_pred(model, dataset, batch_size=batch_size)
 
     unique_poly = np.unique(poly_m)
     n_poly = len(unique_poly)
@@ -25,7 +25,7 @@ def get_matrix_from_poly(model, dataset, poly_m, batch_size=500):
     L_mat = np.zeros((len(poly_m), n_poly))
     for idx, poly_i in enumerate(poly_m):
         poly_idx = np.where(unique_poly==poly_i)
-        L_mat[idx, poly_idx] = pred_y[idx]+1
+        L_mat[idx, poly_idx] = 1#pred_y[idx]+1
             # if key == '0/1':
             #     L_mat[idx, poly_idx] = pred_label[idx]
             # elif key == 'true_label':
@@ -59,6 +59,9 @@ def get_label_pred(model, dataset, batch_size=500):
         # size += len(y)
         preds.extend(model.predict(x))
         # test_y.extend(y)
+
+        break
+
     # acc = acc / size
     pred_y = np.argmax(preds, axis=-1)
     # print(pred_y.shape)
@@ -120,7 +123,7 @@ def compute_complexity(X, k=5):
     compute different notions of complexity measures for the internal representation matrices
     '''
 
-    plot_dict = {'ranks': [], 'stable_ranks': [], 'modularity': [], 'avg_clusters': [], 'KF-raw': [], 'KF-ratio': [], 'KF-kernel':[], 'Schatten': []}
+    plot_dict = {'ranks': [], 'stable_ranks': [], 'modularity': [], 'avg_clusters': [], 'KF-raw': [], 'KF-ratio': [], 'KF-kernel':[], 'Schatten': [], 'h*': []}
 
 #   for i in range(len(X)):
     rep = X
@@ -134,6 +137,9 @@ def compute_complexity(X, k=5):
     plot_dict['KF-ratio'].append(KF_ratios)
     plot_dict['KF-kernel'].append(KF_kers)
     plot_dict['Schatten'].append(Schattens)
+
+    h, r = compute_rad_gen_gap(rep, normalize=True)
+    plot_dict['h*'].append(h)
   
     return plot_dict
 
@@ -186,3 +192,43 @@ def get_df_tau(plot_dict, gen_err):
     })
 
   return kendal_cor
+
+
+  ###- ----------- New 
+def compute_rad_gen_gap(m, normalize=False):
+    '''
+    Compute complexity measures of local rad bound for different model architecture, and generalization gap 
+    Input: 
+    - listOfResults: different trials; 
+    - matrix: 'pen_matrices' or 'matrices';
+    - mode: 'depth' or 'width' or 'merge'
+    Output: rs (depth/width/depth+width)
+    '''
+    listOfMatrices = [ m ]
+    avg_proximity = random_partition_kernel(listOfMatrices)
+    r, h = get_local_rad_bound(avg_proximity, normalize)
+    return r, h
+
+def random_partition_kernel(listOfMs):
+  '''
+  Compute the random partition kernel (aka characteristic kernel)
+  Input:  list of internal matrices from same model architecture but different trials
+  Output: average proximity matrix  I_{phi(x_i)=phi(x_j)} := m @ m.T , where phi is the activated region (part) assigned to x, average over trials
+  '''
+  listOfInds = [m @ m.T for m in listOfMs]
+  return np.mean(np.array(listOfInds),axis=0)
+  
+def get_local_rad_bound(m, normalize=True):
+  '''
+  Compute local rad bound from Bartlett using avg proximity matrix (i.e. characteristic kernel of NN)
+  Input: m - 2d matrix (n by n)
+  [Bug: normalize should be applied with a hyper-parameter (constant), as the functions are not strictly contained in the unit-ball]
+  Return: r^*, h
+  '''
+  n = m.shape[0]
+  evalues = np.linalg.svd(m, full_matrices=False, compute_uv=False, hermitian=True)
+  if normalize:
+    evalues = evalues / n
+  num_nonzero = np.count_nonzero(evalues)
+  rs = [h/n + np.sqrt((1/n) * evalues[h:].sum()) for h in range(0,num_nonzero+1)]
+  return np.array(rs).min(), np.array(rs).argmin()

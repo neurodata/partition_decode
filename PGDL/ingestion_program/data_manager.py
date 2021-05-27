@@ -105,6 +105,7 @@ class DataManager:
             })
             inputs = tf.io.parse_tensor(record['inputs'], out_type=tf.float32)
             output = tf.io.parse_tensor(record['output'], out_type=tf.int32)
+
             return inputs, output
 
         return dataset.map(_deserialize_example)

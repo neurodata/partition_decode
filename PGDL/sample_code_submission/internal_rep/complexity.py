@@ -17,7 +17,7 @@ from keras.utils import multi_gpu_model
 from .matrix_funcs import get_matrix_from_poly, compute_complexity
 
 
-def complexity(model, dataset, program_dir, measure = 'KF-ratio'):
+def complexity(model, dataset, program_dir, measure = 'KF-raw'):
 	'''
 	Wrapper Complexity Function to combine various complexity measures
 
@@ -64,7 +64,7 @@ def complexity(model, dataset, program_dir, measure = 'KF-ratio'):
 
 
 
-def complexityIR(model, dataset, program_dir=None, method="KF-kernel"):
+def complexityIR(model, dataset, program_dir=None, method="h*"):
 
 	'''
 	Function to calculate internal representation based complexity measures
@@ -90,8 +90,9 @@ def complexityIR(model, dataset, program_dir=None, method="KF-kernel"):
 	# 	pass
 
 	layers = []	
-	batch_size=500
-	poly_m = get_polytope(model, dataset, batch_size=batch_size)
+	batch_size=200
+	# poly_m = get_polytope(model, dataset, batch_size=batch_size)
+	poly_m = binary_pattern_mat(model, dataset, batch_size=batch_size)
 	# poly_m = polytope_activations(model, dataset)
 	print("********", poly_m.shape, np.unique(poly_m).shape) 
 
@@ -134,9 +135,39 @@ def get_polytope(model, dataset, batch_size=500):
 			
 		polytope_memberships = [np.tensordot(np.concatenate(polytope_memberships, axis = 1), 2 ** np.arange(0, np.shape(np.concatenate(polytope_memberships, axis = 1))[1]), axes = 1)]
 		polytope_memberships_list.append(polytope_memberships[0])
-	
+		
+		break
+		
 	poly_m = np.hstack(polytope_memberships_list)
 	return poly_m
+
+
+def binary_pattern_mat(model, dataset, batch_size=500):
+	layers = []
+
+	polytope_memberships_list = []
+
+	for x, y in dataset.batch(batch_size):
+
+		batch_ = x
+		
+		with tf.GradientTape(persistent=True) as tape:
+			intermediateVal = [batch_]
+			polytope_memberships = []
+			last_activations = batch_
+			tape.watch(last_activations)
+			for l, layer_ in enumerate(model.layers):
+				if l == len(model.layers)-1:
+					break
+				preactivation = layer_(last_activations)
+				binary_preactivation = (K.cast((preactivation > 0), "float"))
+				last_activations = preactivation * binary_preactivation
+			#np.unique(binary_preactivation, axis=0, return_inverse=True)
+			binary_str = []
+			for idx, pattern in enumerate(np.array(binary_preactivation).reshape(len(x), -1)):
+				binary_str.append( ''.join(str(int(x)) for x in pattern) )
+		break
+	return np.array(binary_str)
 
 
 def polytope_activations(model, dataset, pool_layers=True):

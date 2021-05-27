@@ -205,6 +205,7 @@ if __name__=="__main__" and debug_mode<4:
         vprint( verbose,  "======== Creating model ==========")
 
         training_data = D.load_training_data()
+
         complexity_value = {}
         # gen_err_value = {}
         for mid in D.model_ids:
