@@ -215,9 +215,9 @@ if __name__=="__main__" and debug_mode<4:
             model = D.load_model(mid)
 
             if should_pass_submission_dir:
-                measure_val = complexity(model, training_data, program_dir=submission_dir)
+                measure_val = complexity(model, training_data, mid=mid, program_dir=submission_dir)
             else:
-                measure_val = complexity(model, training_data)
+                measure_val = complexity(model, training_data, mid=mid)
 
             try:
                 measure_val = float(measure_val)
