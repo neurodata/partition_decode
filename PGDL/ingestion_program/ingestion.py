@@ -129,6 +129,7 @@ if __name__=="__main__" and debug_mode<4:
     from data_manager import DataManager # load/save data and get info about them
     from internal_rep.complexity import complexity # complexity measure
     # from best.complexity import complexity
+    # from runner_up.complexity import complexity
 
     should_pass_submission_dir = 'program_dir' in inspect.getfullargspec(complexity).args
 
@@ -216,9 +217,9 @@ if __name__=="__main__" and debug_mode<4:
             model = D.load_model(mid)
 
             if should_pass_submission_dir:
-                measure_val = complexity(model, training_data, mid=mid, program_dir=submission_dir)
+                measure_val = complexity(model, training_data, program_dir=submission_dir)
             else:
-                measure_val = complexity(model, training_data, mid=mid)
+                measure_val = complexity(model, training_data)
 
             try:
                 measure_val = float(measure_val)
