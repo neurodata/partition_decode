@@ -13,12 +13,11 @@ import pandas as pd
 import copy
 
 
-def get_matrix_from_poly(model, dataset, poly_m, batch_size=500):
+def ger_matrix_from_poly(model, dataset, poly_m):
     # L_matrices = {'0/1': [], 'true_label':[], 'est_label':[], 'est_poster':[]}
     L_matrices = []
-    # test_y, pred_y, test_acc = get_label_pred(model, dataset, batch_size=batch_size)
-    # pred_y = get_label_pred(model, dataset, batch_size=batch_size)
-
+    test_y, pred_y, test_acc = get_label_pred(model, dataset)
+    print(pred_y.shape, poly_m.shape)
     unique_poly = np.unique(poly_m)
     n_poly = len(unique_poly)
 
@@ -26,7 +25,7 @@ def get_matrix_from_poly(model, dataset, poly_m, batch_size=500):
     L_mat = np.zeros((len(poly_m), n_poly))
     for idx, poly_i in enumerate(poly_m):
         poly_idx = np.where(unique_poly == poly_i)
-        L_mat[idx, poly_idx] = 1  # pred_y[idx]+1
+        L_mat[idx, poly_idx] = pred_y[idx] + 1
         # if key == '0/1':
         #     L_mat[idx, poly_idx] = pred_label[idx]
         # elif key == 'true_label':
@@ -38,35 +37,41 @@ def get_matrix_from_poly(model, dataset, poly_m, batch_size=500):
         # L_matrices[key].append(L_mat)
 
     # gen_gap = abs((1-test_acc) - (1-train_acc))
-    # test_gen_err = (1-test_acc)
-    return np.array(L_mat)  # , test_gen_err
+    test_gen_err = 1 - test_acc
+    return np.array(L_mat), test_gen_err
 
 
-def get_label_pred(model, dataset, batch_size=500):
+def get_label_pred(model, dataset, computeOver=500, batchSize=50):
 
-    # model.compile(optimizer='adam',
-    # 	loss='sparse_categorical_crossentropy',
-    # 	metrics=['accuracy'])
+    it = iter(dataset.repeat(-1).shuffle(50000, seed=1).batch(batchSize))
+    N = computeOver // batchSize
+    batches = [next(it) for i in range(N)]
+
+    test_y = [batch[1] for batch in batches]
+
+    # ds = dataset.repeat(-1).shuffle(50000, seed=1).batch(batchSize)
+    # preds = model.predict(x=ds, steps=N, verbose=False)
+    # print(preds.shape)
+    # preds = model.predict(x=dataset)
+    # print(preds.shape)
+    # pred_y = np.argmax(preds, axis=-1)
+
+    model.compile(
+        optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"]
+    )
 
     acc, size = 0, 0
-    test_y = []
-
-    # for batch in batches:
+    y_true = []
     preds = []
-    for x, y in dataset.batch(batch_size):
-        # test_loss, test_acc = model.evaluate(x, y, verbose=False)
-        # acc += test_acc * len(y)
-        # size += len(y)
-        preds.extend(model.predict(x))
-        # test_y.extend(y)
-
-        break
-
-    # acc = acc / size
+    for batch in batches:
+        test_loss, test_acc = model.evaluate(batch[0], batch[1], verbose=False)
+        acc += test_acc * len(batch[1])
+        size += len(batch[1])
+        preds.extend(model.predict(batch[0]))
+    acc = acc / size
     pred_y = np.argmax(preds, axis=-1)
-    # print(pred_y.shape)
-
-    return pred_y  # test_y, pred_y, acc
+    print(pred_y.shape)
+    return test_y, pred_y, acc
 
 
 ##********** Matrix ranks *************##
@@ -119,41 +124,50 @@ def graph_metrics(m):
     return avg_c, modularity
 
 
-def compute_complexity(X, k=5):
+def compute_complexity(L, k=5, from_evalues=False, from_gram=False):
     """
-    Input: internal rep matrices
-    compute different notions of complexity measures for the internal representation matrices
+    Computes a variety of internal representation complexity metrics at once.
+    Parameters
+    ----------
+    L : numpy.ndarray, shape (n_samples, ...)
+        internal representation matrix or precomputed eigenvalues
+    k : int, default=5
+        number of eigenvalues for KF and Schatten methods
+    from_evalues : boolean, default=False
+        If True, then L is assumed to be the precomputed eigenvalues
+    from_gram : boolean, default=False
+        If True, then L is assumed to be a square kernel (Gram) matrix.
+        Otherwise an svd will be performed on L where the Gram matrix is LL^T
+        which improves computational efficiency.
+    Returns
+    -------
+    complexity_dict : dict
+        dictionary of (metric_name, metric_value) pairs for L
     """
 
-    plot_dict = {
-        "ranks": [],
-        "stable_ranks": [],
-        "modularity": [],
-        "avg_clusters": [],
-        "KF-raw": [],
-        "KF-ratio": [],
-        "KF-kernel": [],
-        "Schatten": [],
-        "h*": [],
-    }
+    complexity_dict = {}
 
-    #   for i in range(len(X)):
-    rep = X
-    # plot_dict['ranks'].append(matrix_rank(rep))
-    # plot_dict['stable_ranks'].append(get_stable_rank(rep))
-    # avg_c, modularity = graph_metrics(rep)
-    # plot_dict['avg_clusters'].append(avg_c)
-    # plot_dict['modularity'].append(modularity)
-    KF_norms, KF_ratios, KF_kers, Schattens = get_KF_Schatten_norms(rep, num_k=k)
-    plot_dict["KF-raw"].append(KF_norms)
-    plot_dict["KF-ratio"].append(KF_ratios)
-    plot_dict["KF-kernel"].append(KF_kers)
-    plot_dict["Schatten"].append(Schattens)
+    # For efficiency across the multiple metrics
+    if from_evalues:
+        evalues = L
+    elif from_gram:
+        evalues = np.linalg.svd(L, compute_uv=False, hermitian=True)
+    else:
+        ss = np.linalg.svd(L, compute_uv=False)
+        evalues = np.zeros(L.shape[0])
+        evalues[:len(ss)] = ss**2
 
-    # h, r = compute_rad_gen_gap(rep, normalize=True)
-    # plot_dict['h*'].append(h)
+    KF_norms, KF_ratios, KF_kers, Schattens = get_KF_Schatten_norms(evalues, k, from_evalues=True)
+    complexity_dict['KF-raw'] = KF_norms
+    complexity_dict['KF-ratio'] = KF_ratios
+    complexity_dict['KF-kernel'] = KF_kers
+    complexity_dict['Schatten'] = Schattens
 
-    return plot_dict
+    h_star, h_argmin = get_local_rad_bound(evalues, normalize=True, from_evalues=True)
+    complexity_dict['h*'] = h_star
+    complexity_dict['h_argmin'] = h_argmin
+
+    return complexity_dict
 
 
 def compute_tau(gen_gap, metric, inverse=False):
@@ -200,48 +214,3 @@ def get_df_tau(plot_dict, gen_err):
     )
 
     return kendal_cor
-
-    ###- ----------- New
-
-
-def compute_rad_gen_gap(m, normalize=False):
-    """
-    Compute complexity measures of local rad bound for different model architecture, and generalization gap
-    Input:
-    - listOfResults: different trials;
-    - matrix: 'pen_matrices' or 'matrices';
-    - mode: 'depth' or 'width' or 'merge'
-    Output: rs (depth/width/depth+width)
-    """
-    listOfMatrices = [m]
-    avg_proximity = random_partition_kernel(listOfMatrices)
-    r, h = get_local_rad_bound(avg_proximity, normalize)
-    return r, h
-
-
-def random_partition_kernel(listOfMs):
-    """
-    Compute the random partition kernel (aka characteristic kernel)
-    Input:  list of internal matrices from same model architecture but different trials
-    Output: average proximity matrix  I_{phi(x_i)=phi(x_j)} := m @ m.T , where phi is the activated region (part) assigned to x, average over trials
-    """
-    listOfInds = [m @ m.T for m in listOfMs]
-    return np.mean(np.array(listOfInds), axis=0)
-
-
-def get_local_rad_bound(m, normalize=True):
-    """
-    Compute local rad bound from Bartlett using avg proximity matrix (i.e. characteristic kernel of NN)
-    Input: m - 2d matrix (n by n)
-    [Bug: normalize should be applied with a hyper-parameter (constant), as the functions are not strictly contained in the unit-ball]
-    Return: r^*, h
-    """
-    n = m.shape[0]
-    evalues = np.linalg.svd(m, full_matrices=False, compute_uv=False, hermitian=True)
-    if normalize:
-        evalues = evalues / n
-    num_nonzero = np.count_nonzero(evalues)
-    rs = [
-        h / n + np.sqrt((1 / n) * evalues[h:].sum()) for h in range(0, num_nonzero + 1)
-    ]
-    return np.array(rs).min(), np.array(rs).argmin()
