@@ -31,23 +31,23 @@
 #   - dataname/model_*                            -- the individual model
 #     - config.json                      -- configuration for building the model
 #     - weights.hdf5                     -- weights of the trained model
-#   - dataname/model_configs.json                 -- configurations of all models and training/test numerics 
+#   - dataname/model_configs.json                 -- configurations of all models and training/test numerics
 #
-# The output directory output_dir (e.g. sample_result_submission/) 
+# The output directory output_dir (e.g. sample_result_submission/)
 # will receive the predicted values (no subdirectories):
-# 	dataname.predict            
+# 	dataname.predict
 #
-# The code directory submission_program_dir (e.g. sample_code_submission/) should contain your 
+# The code directory submission_program_dir (e.g. sample_code_submission/) should contain your
 # code submission model.py (an possibly other functions it depends upon).
 
 # =========================== BEGIN OPTIONS ==============================
-# Verbose mode: 
+# Verbose mode:
 ##############
 # Recommended to keep verbose = True: shows various progression messages
-verbose = True # outputs messages to stdout and stderr for debug purposes
+verbose = True  # outputs messages to stdout and stderr for debug purposes
 
 # Debug level:
-############## 
+##############
 # 0: run the code normally, using the time budget of the tasks
 # 1: run the code normally, but limits the time to max_time
 # 2: run everything, but do not train, generate random outputs in max_time
@@ -57,7 +57,7 @@ debug_mode = 0
 
 # Time budget
 #############
-# Maximum time of training in seconds PER MODEL. 
+# Maximum time of training in seconds PER MODEL.
 max_time_per_model = 1600 * 5
 
 # I/O defaults
@@ -78,11 +78,12 @@ default_submission_dir = root_dir + "sample_code_submission"
 # =============================================================================
 
 # Version of the sample code
-version = 1 
+version = 1
 
 # General purpose functions
 import time
-overall_start = time.time()         # <== Mark starting time
+
+overall_start = time.time()  # <== Mark starting time
 import os
 from sys import argv, path
 import datetime
@@ -92,139 +93,170 @@ import inspect
 the_date = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
 
 import tensorflow as tf
+
 # enable tf 2.0 behavior
-tf.compat.v1.enable_v2_behavior() 
+tf.compat.v1.enable_v2_behavior()
 
 filter_filenames = [".ds_store", ".DS_Store", "__MACOSX"]
 
 # =========================== BEGIN PROGRAM ================================
 
-if __name__=="__main__" and debug_mode<4:	
+if __name__ == "__main__" and debug_mode < 4:
     #### Check whether everything went well (no time exceeded)
     execution_success = True
-    
+
     #### INPUT/OUTPUT: Get input and output directory names
-    if len(argv)==1: # Use the default input and output directories if no arguments are provided
+    if (
+        len(argv) == 1
+    ):  # Use the default input and output directories if no arguments are provided
         input_dir = default_input_dir
         output_dir = default_output_dir
-        program_dir= default_program_dir
-        submission_dir= default_submission_dir
+        program_dir = default_program_dir
+        submission_dir = default_submission_dir
     else:
         input_dir = os.path.abspath(argv[1])
         output_dir = os.path.abspath(argv[2])
         program_dir = os.path.abspath(argv[3])
         submission_dir = os.path.abspath(argv[4])
-    if verbose: 
+    if verbose:
         print("Using input_dir: " + input_dir)
         print("Using output_dir: " + output_dir)
         print("Using program_dir: " + program_dir)
         print("Using submission_dir: " + submission_dir)
 
-	# Our libraries
-    path.append (program_dir)
-    path.append (submission_dir)
+    # Our libraries
+    path.append(program_dir)
+    path.append(submission_dir)
     # path.append (root_dir + "baselines")
-    import data_io                       # general purpose input/output functions
-    from data_io import vprint           # print only in verbose mode
-    from data_manager import DataManager # load/save data and get info about them
-    from internal_rep.complexity import complexity # complexity measure
+    import data_io  # general purpose input/output functions
+    from data_io import vprint  # print only in verbose mode
+    from data_manager import DataManager  # load/save data and get info about them
+    from internal_rep.complexity import complexity  # complexity measure
+
     # from best.complexity import complexity
 
-    should_pass_submission_dir = 'program_dir' in inspect.getfullargspec(complexity).args
+    should_pass_submission_dir = (
+        "program_dir" in inspect.getfullargspec(complexity).args
+    )
 
     if debug_mode >= 4:
-      print('File structure')
-      data_io.list_files('..')
+        print("File structure")
+        data_io.list_files("..")
 
-    if debug_mode >= 4: # Show library version and directory structure
+    if debug_mode >= 4:  # Show library version and directory structure
         data_io.show_dir(".")
-        
+
     # Move old results and create a new output directory (useful if you run locally)
     if save_previous_results:
-        data_io.mvdir(output_dir, output_dir+'_'+the_date) 
-    data_io.mkdir(output_dir) 
-    
+        data_io.mvdir(output_dir, output_dir + "_" + the_date)
+    data_io.mkdir(output_dir)
+
     #### INVENTORY DATA (and sort dataset names alphabetically)
     datanames = os.listdir(input_dir)
     # change input dir to compensate for the single file unzipping
-    if 'input_data' in datanames:
-        input_dir = os.path.join(input_dir, 'input_data')
+    if "input_data" in datanames:
+        input_dir = os.path.join(input_dir, "input_data")
         datanames = os.listdir(input_dir)
     # Overwrite the "natural" order
-    
+
     #### DEBUG MODE: Show dataset list and STOP
-    if debug_mode>=3:
+    if debug_mode >= 3:
         data_io.show_version()
         data_io.show_io(input_dir, output_dir)
-        print('\n****** Ingestion program version ' + str(version) + ' ******\n\n' + '========== DATASETS ==========\n')        	
-        data_io.write_list(datanames)      
-        datanames = [] # Do not proceed with learning and testing
-        
-    #### MAIN LOOP OVER DATASETS: 
+        print(
+            "\n****** Ingestion program version "
+            + str(version)
+            + " ******\n\n"
+            + "========== DATASETS ==========\n"
+        )
+        data_io.write_list(datanames)
+        datanames = []  # Do not proceed with learning and testing
+
+    #### MAIN LOOP OVER DATASETS:
     overall_time_budget = 0
     time_left_over = 0
     time_exceeded = False
-    for basename in datanames: # Loop over datasets
+    for basename in datanames:  # Loop over datasets
         if basename in filter_filenames:
             continue
-        vprint( verbose,  "\n========== Ingestion program version " + str(version) + " ==========\n") 
-        vprint( verbose,  "************************************************")
-        vprint( verbose,  "******** Processing dataset " + basename.capitalize() + " ********")
-        vprint( verbose,  "************************************************")
-        
+        vprint(
+            verbose,
+            "\n========== Ingestion program version " + str(version) + " ==========\n",
+        )
+        vprint(verbose, "************************************************")
+        vprint(
+            verbose,
+            "******** Processing dataset " + basename.capitalize() + " ********",
+        )
+        vprint(verbose, "************************************************")
+
         # ======== Learning on a time budget:
         # Keep track of time not to exceed your time budget. Time spent to inventory data neglected.
         start = time.time()
-        
+
         # ======== Creating a data object with data, informations about it (write a new data manager for loading the models)
-        vprint(verbose,  "========= Reading and converting data ==========")
+        vprint(verbose, "========= Reading and converting data ==========")
         D = DataManager(basename, input_dir)
         print(D)
-        #vprint( verbose,  "[+] Size of uploaded data  %5.2f bytes" % data_io.total_size(D))
-        
+        # vprint( verbose,  "[+] Size of uploaded data  %5.2f bytes" % data_io.total_size(D))
+
         # ======== Keeping track of time
-        #if debug_mode<1:
+        # if debug_mode<1:
         #    time_budget = D.info['time_budget']        # <== HERE IS THE TIME BUDGET!
-        #else:
+        # else:
         #    time_budget = max_time
         time_budget = D.num_models * max_time_per_model
 
         overall_time_budget = overall_time_budget + time_budget
-        vprint( verbose,  "[+] Cumulated time budget (all tasks so far)  %5.2f sec" % (overall_time_budget))
+        vprint(
+            verbose,
+            "[+] Cumulated time budget (all tasks so far)  %5.2f sec"
+            % (overall_time_budget),
+        )
         # We do not add the time left over form previous dataset: time_budget += time_left_over
-        vprint( verbose,  "[+] Time budget for this task %5.2f sec" % time_budget)
+        vprint(verbose, "[+] Time budget for this task %5.2f sec" % time_budget)
         time_spent = time.time() - start
-        vprint( verbose,  "[+] Remaining time after reading data %5.2f sec" % (time_budget-time_spent))
+        vprint(
+            verbose,
+            "[+] Remaining time after reading data %5.2f sec"
+            % (time_budget - time_spent),
+        )
 
         if time_spent >= time_budget:
-            vprint( verbose,  "[-] Sorry, time budget exceeded, skipping this task")
+            vprint(verbose, "[-] Sorry, time budget exceeded, skipping this task")
             execution_success = False
             continue
-        
-        # ========= Creating a model ========== 
-        vprint( verbose,  "======== Creating model ==========")
+
+        # ========= Creating a model ==========
+        vprint(verbose, "======== Creating model ==========")
 
         training_data = D.load_training_data()
         complexity_value = {}
         # gen_err_value = {}
         for mid in D.model_ids:
             if time_exceeded:
-                complexity_value[mid] = 'EXCEEDED'
+                complexity_value[mid] = "EXCEEDED"
                 continue
             tf.keras.backend.clear_session()
             model = D.load_model(mid)
 
             if should_pass_submission_dir:
-                measure_val = complexity(model, training_data, mid=mid, program_dir=submission_dir)
+                measure_val = complexity(
+                    model, training_data, mid=mid, program_dir=submission_dir
+                )
             else:
                 measure_val = complexity(model, training_data, mid=mid)
 
             try:
                 measure_val = float(measure_val)
             except:
-                print('Incorrect measure data type!')
-                raise TypeError('Measure should be a scalar float or numpy float but got type: {}'.format(type(measure_val)))
-            
+                print("Incorrect measure data type!")
+                raise TypeError(
+                    "Measure should be a scalar float or numpy float but got type: {}".format(
+                        type(measure_val)
+                    )
+                )
+
             # gen_err_value[mid] = gen_err
             complexity_value[mid] = measure_val
             time_left_over = time_budget - time.time() + start
@@ -236,30 +268,57 @@ if __name__=="__main__" and debug_mode<4:
             # print(gen_err_value)
 
         if time_exceeded:
-            vprint(verbose, "[+] Time exceeded: time limit is {} but program has run for {}".format(time_budget, time.time() - start))
+            vprint(
+                verbose,
+                "[+] Time exceeded: time limit is {} but program has run for {}".format(
+                    time_budget, time.time() - start
+                ),
+            )
         else:
-            vprint( verbose,  "[+] Prediction success, time spent so far %5.2f sec" % (time.time() - start))
+            vprint(
+                verbose,
+                "[+] Prediction success, time spent so far %5.2f sec"
+                % (time.time() - start),
+            )
         # Write results
         # -------------
-        filename_train = basename + '.predict'
+        filename_train = basename + ".predict"
         # filename_train = "AlwaysGeneralize" + '.predict'
-        vprint( verbose, "======== Saving results to: " + output_dir + " as " + filename_train)
+        vprint(
+            verbose,
+            "======== Saving results to: " + output_dir + " as " + filename_train,
+        )
         data_io.save_json(os.path.join(output_dir, filename_train), complexity_value)
         # data_io.save_json(os.path.join(output_dir, basename + '.gen_err'), gen_err_value)
-        vprint( verbose,  "[+] Results saved, time spent so far %5.2f sec" % (time.time() - start))
-        time_spent = time.time() - start 
+        vprint(
+            verbose,
+            "[+] Results saved, time spent so far %5.2f sec" % (time.time() - start),
+        )
+        time_spent = time.time() - start
         time_left_over = time_budget - time_spent
-        vprint( verbose,  "[+] Time left %5.2f sec" % time_left_over)
-        #if time_left_over<=0: break
-               
+        vprint(verbose, "[+] Time left %5.2f sec" % time_left_over)
+        # if time_left_over<=0: break
+
     overall_time_spent = time.time() - overall_start
     if execution_success:
-        vprint( verbose,  "[+] Done")
-        vprint( verbose,  "[+] Overall time spent %5.2f sec " % overall_time_spent + "::  Overall time budget %5.2f sec" % overall_time_budget)
+        vprint(verbose, "[+] Done")
+        vprint(
+            verbose,
+            "[+] Overall time spent %5.2f sec " % overall_time_spent
+            + "::  Overall time budget %5.2f sec" % overall_time_budget,
+        )
     else:
-        vprint( verbose,  "[-] Done, but some tasks aborted because time limit exceeded")
-        vprint( verbose,  "[-] Overall time spent %5.2f sec " % overall_time_spent + " > Overall time budget %5.2f sec" % overall_time_budget)
+        vprint(verbose, "[-] Done, but some tasks aborted because time limit exceeded")
+        vprint(
+            verbose,
+            "[-] Overall time spent %5.2f sec " % overall_time_spent
+            + " > Overall time budget %5.2f sec" % overall_time_budget,
+        )
 
     if time_exceeded:
-        print("Exceeding the time budge of {} sec/model ({} seconds total)!".format(max_time_per_model, time_budget))
-      # raise TimeoutError("Exceeding the time budge of {} sec/model ({} seconds total).".format(max_time_per_model, time_budget)) 
+        print(
+            "Exceeding the time budge of {} sec/model ({} seconds total)!".format(
+                max_time_per_model, time_budget
+            )
+        )
+    # raise TimeoutError("Exceeding the time budge of {} sec/model ({} seconds total).".format(max_time_per_model, time_budget))

@@ -21,17 +21,18 @@
 import numpy as np
 import tensorflow as tf
 
+
 def complexity(model, ds):
-  model_weights = model.get_weights()
-  model_variables = model.trainable_variables
-  kernels = []
-  for v, w in zip(model_variables, model_weights):
-    if 'kernel' in v.name:
-      kernels.append(v)
-  d = len(kernels)
-  log_term = np.log(22*d*32**2)
-  summation = 0
-  for v in kernels:
-    shape = v.get_shape().as_list()
-    summation += np.prod(shape)
-  return d + 2 * d * log_term * summation
+    model_weights = model.get_weights()
+    model_variables = model.trainable_variables
+    kernels = []
+    for v, w in zip(model_variables, model_weights):
+        if "kernel" in v.name:
+            kernels.append(v)
+    d = len(kernels)
+    log_term = np.log(22 * d * 32 ** 2)
+    summation = 0
+    for v in kernels:
+        shape = v.get_shape().as_list()
+        summation += np.prod(shape)
+    return d + 2 * d * log_term * summation

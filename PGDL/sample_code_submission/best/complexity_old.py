@@ -6,6 +6,5 @@ import tensorflow as tf
 
 def complexity(model, dataset):
     weights = model.get_weights()
-    norm = sum([np.linalg.norm(w)**2 for w in weights])
+    norm = sum([np.linalg.norm(w) ** 2 for w in weights])
     return norm
-

@@ -22,25 +22,24 @@ import tensorflow as tf
 
 
 def complexity(model, dataset):
+    @tf.function()
+    def get_jacobian(inputs):
+        """Get jacobians with respect to intermediate layers."""
+        with tf.GradientTape(persistent=True) as tape:
+            out = model(inputs, tape=tape)
+        dct = {}
+        for i, l in enumerate(model.layers):
+            try:
+                dct[i] = tape.batch_jacobian(out, l._last_seen_input)
+            except AttributeError:  # no _last_seen_input, layer not wrapped (ex: flatten)
+                dct[i] = None
+        return dct
 
-  @tf.function()
-  def get_jacobian(inputs):
-      """Get jacobians with respect to intermediate layers."""
-      with tf.GradientTape(persistent=True) as tape:
-          out = model(inputs, tape=tape)
-      dct = {}
-      for i, l in enumerate(model.layers):
-          try:
-              dct[i] = tape.batch_jacobian(out, l._last_seen_input)
-          except AttributeError:  # no _last_seen_input, layer not wrapped (ex: flatten)
-              dct[i] = None
-      return dct
-
-  avg = tf.keras.metrics.Mean()
-  for i, (x, y) in enumerate(dataset.batch(16)):
-    J = get_jacobian(x)
-    fro_norm = np.mean([np.mean(np.square(v)) for v in J.values()])
-    avg.update_state(fro_norm)
-    if i == 32:  # only 512 examples for efficiency
-      break
-  return avg.result().numpy()
+    avg = tf.keras.metrics.Mean()
+    for i, (x, y) in enumerate(dataset.batch(16)):
+        J = get_jacobian(x)
+        fro_norm = np.mean([np.mean(np.square(v)) for v in J.values()])
+        avg.update_state(fro_norm)
+        if i == 32:  # only 512 examples for efficiency
+            break
+    return avg.result().numpy()
