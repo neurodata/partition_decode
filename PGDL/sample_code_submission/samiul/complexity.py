@@ -23,10 +23,9 @@ def convert_to_noisy_model(model: tf.keras.Model, shape, lambda_0):
 
 
 class NoiseLayer(tf.keras.layers.Layer):
-    def __init__(self, stdev,
-                 **kwargs):
-        if 'input_shape' not in kwargs and 'input_dim' in kwargs:
-            kwargs['input_shape'] = (kwargs.pop('input_dim'),)
+    def __init__(self, stdev, **kwargs):
+        if "input_shape" not in kwargs and "input_dim" in kwargs:
+            kwargs["input_shape"] = (kwargs.pop("input_dim"),)
         super(NoiseLayer, self).__init__(**kwargs)
         self.noise_layer = tf.keras.layers.GaussianNoise(stdev)
 
@@ -43,10 +42,9 @@ class NoiseLayer(tf.keras.layers.Layer):
         return dict(list(base_config.items()))
 
 
-def estimate_accuracy(model: tf.keras.Model,
-                      dataset,
-                      iteration: int,
-                      should_encode: (int, bool)):
+def estimate_accuracy(
+    model: tf.keras.Model, dataset, iteration: int, should_encode: (int, bool)
+):
     acc = 0.0
     for _ in range(iteration):
         x, y = dataset.next()
@@ -61,7 +59,9 @@ def calculate_moments(grad, nn_out):
     if len(grad.shape) == 3:
         grad = tf.expand_dims(grad, -1)
     axes = tuple(range(len(grad.shape)))[:-1]
-    norm_grads = tf.divide(grad, tf.reduce_mean(tf.square(grad), axis=-2, keepdims=True))
+    norm_grads = tf.divide(
+        grad, tf.reduce_mean(tf.square(grad), axis=-2, keepdims=True)
+    )
     weights = tf.reduce_mean(norm_grads, axis=axes, keepdims=True)
     cam = tf.multiply(weights, nn_out)
     cam = tf.maximum(cam, 0)
@@ -116,16 +116,17 @@ def convert_model(model, shape, lambda_0=2.5):
 
 
 def bh_dist(mu, mu_c, v, v_c, eps):
-    return tf.maximum(0,
-                      (1 / 8) *
-                      ((mu - mu_c) ** 2) / (0.5 * (v + v_c + eps))
-                      + 0.5 * tf.math.log(
-                          eps
-                          + 0.5 * (v + v_c) / (eps + v * v_c)))
+    return tf.maximum(
+        0,
+        (1 / 8) * ((mu - mu_c) ** 2) / (0.5 * (v + v_c + eps))
+        + 0.5 * tf.math.log(eps + 0.5 * (v + v_c) / (eps + v * v_c)),
+    )
 
 
 def aggregate_distribution(i, mu_agg, var_agg, mu, var):
-    var_agg = i * var_agg / (i + 1) + var / (i + 1) + i * ((mu - mu_agg) ** 2) / (i + 1) ** 2
+    var_agg = (
+        i * var_agg / (i + 1) + var / (i + 1) + i * ((mu - mu_agg) ** 2) / (i + 1) ** 2
+    )
     mu_agg = i * mu_agg / (i + 1) + mu / (i + 1)
     return mu_agg, var_agg
 
@@ -155,8 +156,12 @@ def complexity(model, dataset):
                 var_c_agg[k] = 0
                 mu_agg[k] = 0
                 mu_c_agg[k] = 0
-            mu_agg[k], var_agg[k] = aggregate_distribution(i, mu_agg[k], var_agg[k], m[:, 0], m[:, 1])
-            mu_c_agg[k], var_c_agg[k] = aggregate_distribution(i, mu_c_agg[k], var_c_agg[k], m_c[:, 0], m_c[:, 1])
+            mu_agg[k], var_agg[k] = aggregate_distribution(
+                i, mu_agg[k], var_agg[k], m[:, 0], m[:, 1]
+            )
+            mu_c_agg[k], var_c_agg[k] = aggregate_distribution(
+                i, mu_c_agg[k], var_c_agg[k], m_c[:, 0], m_c[:, 1]
+            )
         i += 1
         if i == limit:
             break

@@ -24,6 +24,7 @@ import tensorflow as tf
 def complexity(model, dataset):
     weights = model.get_weights()
     init_weights = model.initial_weights
-    norm = sum([np.linalg.norm(w-w_i)**2 for (w, w_i) in zip(weights, init_weights)])
+    norm = sum(
+        [np.linalg.norm(w - w_i) ** 2 for (w, w_i) in zip(weights, init_weights)]
+    )
     return norm
-

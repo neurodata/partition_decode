@@ -20,18 +20,20 @@ import json
 
 
 class Sequential(tf.keras.Sequential):
-  def __call__(self, x, tape=False, *args, **kwargs):
-    if tape:
-      tape.watch(x)
-    return super(Sequential, self).__call__(x, *args, **kwargs)
+    def __call__(self, x, tape=False, *args, **kwargs):
+        if tape:
+            tape.watch(x)
+        return super(Sequential, self).__call__(x, *args, **kwargs)
 
 
 def wrap_layer(layer_cls, *args, **kwargs):
     """Wraps a layer for computing the jacobian wrt to intermediate layers."""
+
     class wrapped_layer(layer_cls):
         def __call__(self, x, *args, **kwargs):
             self._last_seen_input = x
             return super(wrapped_layer, self).__call__(x, *args, **kwargs)
+
     return wrapped_layer(*args, **kwargs)
 
 
@@ -54,10 +56,10 @@ def model_def_to_keras_sequential(model_def):
         return dct
 
     def parse_layer(layer_def):
-        layer_cls = getattr(tf.keras.layers, layer_def['layer_name'])
+        layer_cls = getattr(tf.keras.layers, layer_def["layer_name"])
         # layer_cls = wrap_layer(layer_cls)
         kwargs = dict(layer_def)
-        del kwargs['layer_name']
+        del kwargs["layer_name"]
         return wrap_layer(layer_cls, **_cast_to_integer_if_possible(kwargs))
         # return layer_cls(**_cast_to_integer_if_possible(kwargs))
 
@@ -76,4 +78,3 @@ def get_jacobian(model, inputs):
         except AttributeError:  # no _last_seen_input, layer not wrapped (ex: flatten)
             dct[i] = None
     return dct
-

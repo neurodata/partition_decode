@@ -7,10 +7,10 @@ for line in open(os.path.join(PROJECT_PATH, "functions", "__init__.py")):
     if line.startswith("__version__ = "):
         VERSION = line.strip().split()[2][1:-1]
 
-with open("README.md", mode="r", encoding = "utf8") as f:
+with open("README.md", mode="r", encoding="utf8") as f:
     LONG_DESCRIPTION = f.read()
 
-with open("requirements.txt", mode="r", encoding = "utf8") as f:
+with open("requirements.txt", mode="r", encoding="utf8") as f:
     REQUIREMENTS = f.read()
 
 setup(
@@ -32,9 +32,9 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8"
+        "Programming Language :: Python :: 3.8",
     ],
     install_requires=REQUIREMENTS,
     packages=find_packages(exclude=["tests", "tests.*", "tests/*"]),
-    include_package_data=True
+    include_package_data=True,
 )

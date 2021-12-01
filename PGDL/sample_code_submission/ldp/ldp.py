@@ -10,7 +10,6 @@ from tensorflow.python.framework import tensor_shape
 
 
 class Quantize(Layer):
-
     def linspace_init(self, out_shape):
         minval = -2
         maxval = 2
@@ -33,11 +32,13 @@ class Quantize(Layer):
         self.numCenters = numCenters
 
     def build(self, input_shape):
-        self.centers = self.add_weight(shape=(self.numCenters),
-                                       initializer=self.linspace_init,
-                                       name='centers',
-                                       regularizer=self.pairwise_dist_reg,
-                                       trainable=True)
+        self.centers = self.add_weight(
+            shape=(self.numCenters),
+            initializer=self.linspace_init,
+            name="centers",
+            regularizer=self.pairwise_dist_reg,
+            trainable=True,
+        )
         super(Quantize, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
@@ -68,27 +69,29 @@ class Quantize(Layer):
         zero_vector = tf.zeros(shape=c.shape.as_list()[1], dtype=tf.float32)
 
         bool_mask = tf.not_equal(c, zero_vector)
-        c = tf.keras.layers.Lambda(lambda x: tf.boolean_mask(x, bool_mask), name='bool_mask')(c)
+        c = tf.keras.layers.Lambda(
+            lambda x: tf.boolean_mask(x, bool_mask), name="bool_mask"
+        )(c)
         return c
 
     def get_config(self):
-        config = {
-            'numCenters': self.numCenters
-        }
+        config = {"numCenters": self.numCenters}
         base_config = super(Quantize, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
 class LearnableNoise(Layer):
-    def __init__(self,
-                 activation=None,
-                 kernel_initializer='glorot_uniform',
-                 kernel_regularizer=None,
-                 activity_regularizer=None,
-                 kernel_constraint=None,
-                 **kwargs):
-        if 'input_shape' not in kwargs and 'input_dim' in kwargs:
-            kwargs['input_shape'] = (kwargs.pop('input_dim'),)
+    def __init__(
+        self,
+        activation=None,
+        kernel_initializer="glorot_uniform",
+        kernel_regularizer=None,
+        activity_regularizer=None,
+        kernel_constraint=None,
+        **kwargs
+    ):
+        if "input_shape" not in kwargs and "input_dim" in kwargs:
+            kwargs["input_shape"] = (kwargs.pop("input_dim"),)
         super(LearnableNoise, self).__init__(**kwargs)
         self.activation = activations.get(activation)
         self.kernel_initializer = initializers.get(kernel_initializer)
@@ -103,18 +106,22 @@ class LearnableNoise(Layer):
         input_shape = tensor_shape.TensorShape(input_shape)
         last_dim = tensor_shape.dimension_value(input_shape[-1])
         if last_dim is None:
-            raise ValueError('The last dimension of the inputs to `Dense` '
-                             'should be defined. Found `None`.')
+            raise ValueError(
+                "The last dimension of the inputs to `Dense` "
+                "should be defined. Found `None`."
+            )
         self.input_spec = InputSpec(min_ndim=2, axes={-1: last_dim})
         shape = len(input_shape.as_list()) * [1]
         shape[-1] = last_dim
-        self.kernel = self.add_weight(shape=shape,
-                                      initializer=self.kernel_initializer,
-                                      name='kernel',
-                                      regularizer=self.kernel_regularizer,
-                                      constraint=self.kernel_constraint,
-                                      dtype=self.dtype,
-                                      trainable=True)
+        self.kernel = self.add_weight(
+            shape=shape,
+            initializer=self.kernel_initializer,
+            name="kernel",
+            regularizer=self.kernel_regularizer,
+            constraint=self.kernel_constraint,
+            dtype=self.dtype,
+            trainable=True,
+        )
         super(LearnableNoise, self).build(input_shape)
         self.built = True
 
@@ -125,9 +132,7 @@ class LearnableNoise(Layer):
         return inputs + noise
 
     def get_config(self):
-        config = {
-            'kernel': self.kernel
-        }
+        config = {"kernel": self.kernel}
         base_config = super(LearnableNoise, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
@@ -181,9 +186,11 @@ def complexity(model, ds):
             data_pair = batched_ds.next()
             optimize(cce, model_t, optimizer, data_pair)
         estimate_mean = estimate_accuracy(model_t, batched_ds, 5)
-        if tf.abs(estimate_mean - orig_acc) < .05:
+        if tf.abs(estimate_mean - orig_acc) < 0.05:
             break
         weights = model_t.get_weights()[1::2]
         init_weights = model.get_weights()
-        norm = sum([np.linalg.norm(w - w_i) ** 2 for (w, w_i) in zip(weights, init_weights)])
+        norm = sum(
+            [np.linalg.norm(w - w_i) ** 2 for (w, w_i) in zip(weights, init_weights)]
+        )
         return norm
