@@ -315,6 +315,24 @@ def get_polytopes(model, train_x, penultimate=False):
     return polytope_memberships, last_activations
 
 
+def binary_pattern_mat(model, train_x):
+
+    last_activations = train_x.cpu().numpy()
+    layers = [module for module in model.modules() if type(module) == torch.nn.Linear]
+    for layer_id, layer in enumerate(layers):
+        weights, bias = layer.weight.data.detach().cpu().numpy(), layer.bias.data.detach().cpu().numpy()
+        preactivation = np.matmul(last_activations, weights.T) + bias
+        binary_preactivation = (preactivation > 0).astype('int')
+        if layer_id == len(layers) - 2:
+            break
+        last_activations = preactivation * binary_preactivation
+    
+    binary_str = []
+    for idx, pattern in enumerate(binary_preactivation):
+        binary_str.append( ''.join(str(x) for x in pattern) )
+
+    return np.array(binary_str)
+
 """
   Example to run the `Increasing Depth` vs `Increasing Width` experiments
   and plot the figure.

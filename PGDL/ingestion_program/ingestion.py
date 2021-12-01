@@ -129,6 +129,7 @@ if __name__=="__main__" and debug_mode<4:
     from data_manager import DataManager # load/save data and get info about them
     from internal_rep.complexity import complexity # complexity measure
     # from best.complexity import complexity
+    # from runner_up.complexity import complexity
 
     should_pass_submission_dir = 'program_dir' in inspect.getfullargspec(complexity).args
 
