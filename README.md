@@ -6,7 +6,7 @@
 <!-- [![CircleCI](https://circleci.com/gh/neurodata/pd-paper/tree/main.svg?style=shield)](https://circleci.com/gh/neurodata/pd-paper/tree/main) -->
 <!-- [![Netlify](https://img.shields.io/netlify/)](https://app.netlify.com/sites/pd/deploys) -->
 
-**P**artition **&** **D**ecode: a framework that formalizes an implicit internal representation of parametric and nonparametric models, including Deep Networks and Random Forests.
+**P**artition **&** **D**ecode (**P&D**): a framework that formalizes an implicit internal representation of parametric and nonparametric models, including Deep Networks and Random Forests.
 
 **This is preliminary work. More details will be available.**
 

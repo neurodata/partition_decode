@@ -410,6 +410,7 @@ def get_polytopes(model, train_x, penultimate=False):
 
         if penultimate and layer_id == len(layers) - 1:
             penultimate_act = last_activations
+
     polytope_memberships = [
         np.tensordot(
             np.concatenate(polytope_memberships, axis=1),
