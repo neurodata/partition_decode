@@ -15,10 +15,36 @@ import os
 
 
 def plot_decision_boundaries(
-    model, num_node, num_poly, err, method="contour", depth=True
+    model, num_of_nodes, num_of_polytopes, gen_err, plot_type="contour", plot_name=None
 ):
     """
     Plot the decision boundaries of the model
+
+    Parameters
+    ----------
+    model : Net
+        A trained deep neural net model.
+
+    num_of_nodes : int
+        Number of nodes in the architecture.
+
+    num_of_polytopes : int
+        Number of polytopes after the model partitioned the data.
+
+    gen_err: float
+        The generalization error of the model on the test data.
+
+    plot_type: string, default="contour"
+        The plot type: [contour, colormesh, contour, colormesh, all]
+
+    plot_name: string, default=None
+        The plot name to use when storing the figure.
+
+    Returns
+    -------
+    plt: matplotlib.pyplot.figure
+        Figure of the decision boundaries.
+
     """
     # create grid to evaluate model
     x_min, x_max = -5, 5
@@ -42,7 +68,7 @@ def plot_decision_boundaries(
     bins = np.arange(0, len(poly_m[0]))
     act_bin = np.digitize(poly_m[0], bins)
 
-    if method == "all":
+    if plot_type == "all":
         fig, ax = plt.subplots(1, 3, figsize=(21, 5))
         for a in ax:
             a.axes.xaxis.set_visible(False)
@@ -51,12 +77,12 @@ def plot_decision_boundaries(
         fig, ax = plt.subplots(1, 1, figsize=(7, 5))
         ax.axes.xaxis.set_visible(False)
         ax.axes.yaxis.set_visible(False)
-    if method == "surface" or method == "all":
+    if plot_type == "surface" or plot_type == "all":
         m = poly_m[0]
         m = minmax_scale(m, feature_range=(0, 1), axis=0, copy=True)
         my_col = cm.tab20b(m.reshape(XX.shape))
 
-        if method == "surface":
+        if plot_type == "surface":
             fig = plt.figure(figsize=(7, 5))
             ax = fig.add_subplot(111, projection="3d")
         else:
@@ -87,17 +113,20 @@ def plot_decision_boundaries(
         ax.set_xticks([])
         ax.set_yticks([])
         ax.set_zticks([])
-        ax.set_title("Generalization error: %.4f" % err)
+        ax.set_title("Generalization error: %.4f" % gen_err)
 
-    if method == "colormesh" or method == "all":
-        if method == "all":
+    if plot_type == "colormesh" or plot_type == "all":
+        if plot_type == "all":
             ax = fig.add_subplot(131)
         plt.pcolormesh(XX, YY, Z, cmap="PRGn")
         ax.set_xticks([])
         ax.set_yticks([])
 
         ax.set_title(
-            "Nodes: " + str(num_node) + "; # of activated regions: " + str(num_poly)
+            "Nodes: "
+            + str(num_of_nodes)
+            + "; # of activated regions: "
+            + str(num_of_polytopes)
         )
 
     # if method == 'contour' or method=='all':
@@ -105,12 +134,12 @@ def plot_decision_boundaries(
     #         ax = fig.add_subplot(142)
 
     #     plt.contourf(XX, YY, Z, cmap="tab20b",  vmin = np.min(Z), vmax = np.max(Z))
-    #     ax.set_title("Nodes: " + str(num_node) + "; # of activated regions: " + str(num_poly))
+    #     ax.set_title("Nodes: " + str(num_of_nodes) + "; # of activated regions: " + str(num_of_polytopes))
     #     ax.set_xticks([])
     #     ax.set_yticks([])
 
-    if method == "gini" or method == "all":
-        if method == "all":
+    if plot_type == "gini" or plot_type == "all":
+        if plot_type == "all":
             ax = fig.add_subplot(133)
         # gini_Z = minmax_scale(gini_list, feature_range=(0, 1), axis=0, copy=True)
         gini_Z = gini_list.reshape(XX.shape)
@@ -122,17 +151,39 @@ def plot_decision_boundaries(
         ax.set_xticks([])
         ax.set_yticks([])
 
-    exp = "depth" if depth else "width"
-    os.makedirs("../polytopes/", exist_ok=True)
-    plt.savefig("../polytopes/xor_%s_%s_%04d.png" % (exp, method, num_node))
-    # plt.show()
+    if plot_name != None:
+        os.makedirs("../polytopes/", exist_ok=True)
+        plt.savefig(
+            "../polytopes/xor_%s_%s_%04d.png" % (plot_name, plot_type, num_of_nodes)
+        )
+    else:
+        return plt
 
 
 # Plot the result
-def plot_results(results):
+def plot_results(results, titles=None, save=True):
     """
-    Generate the DeepNet: Increasing Depth vs Increasing Width figure.
+    Generates the DeepNet: `Increasing Depth` vs `Increasing Width` figure.
     results should consist the `Increasing Width` and `Increasing Depth` results, respectively.
+
+    Parameters
+    ----------
+    results : ndarray
+        An array that consists the result for the `Increasing Width` and `Increasing Depth` experiments.
+        A result object in the results array should have the following attributes:
+            result.num_pars, result.train_err_list, result.test_err_list, result.train_loss_list,
+            result.test_loss_list, result.gini_train, result.gini_test, result.num_polytopes_list
+
+    titles: ndarray, default=None
+        Array of titles for the panels. Should have same length as `results`.
+
+    save: bool, default=True
+        A boolean indicating if it should save the figure.
+
+    Returns
+    -------
+    plt: matplotlib.pyplot.figure
+        Plots of the experiments.
     """
 
     sns.set()
@@ -148,28 +199,26 @@ def plot_results(results):
     fig, axes = plt.subplots(
         figsize=(14, 20), nrows=4, ncols=2, sharex="col", sharey="row"
     )
-    # plt.figure(
+
     plt.tick_params(labelsize=ticksize)
     plt.tight_layout()
 
-    titles = [
-        "DeepNet: Increasing Width",
-        "DeepNet: Increasing Depth",
-        "DeepNet: Increasing Width (5 layers)",
-    ]
+    if titles == None:
+        titles = [
+            "DeepNet: Increasing Width",
+            "DeepNet: Increasing Depth",
+            "DeepNet: Increasing Width (5 layers)",
+        ]
 
-    ## Average Stability, Bias and Variance
     for i in range(len(results)):
         result = results[i]
 
         ## You can choose the panels to display
-        # metric_list = [(result.train_err_list, result.test_err_list), (result.train_loss_list, result.test_loss_list), result.penultimate_vars_reps, result.poly_list, result.briers_list, (result.gini_train, result.gini_test), result.avg_stab, result.bias, result.var]
-        # metric_ylab = ["Generalization Error", "Cross-Entropy Loss", "Variance of last activation", "Activated regions", "Hellinger distance", "Gini impurity", "Average stability", "Average Bias", "Average Variance"]
         metric_list = [
             (result.train_err_list, result.test_err_list),
             (result.train_loss_list, result.test_loss_list),
             (result.gini_train, result.gini_test),
-            result.poly_list,
+            result.num_polytopes_list,
         ]
         metric_ylab = [
             "Generalization Error",
@@ -243,5 +292,8 @@ def plot_results(results):
 
     # plt.text(2.8, -0.0490, 'Total parameters', ha='center', fontsize=fontsize)
     sns.despine()
-    os.makedirs("../results", exist_ok=True)
-    plt.savefig("../results/DeepNet.pdf", bbox_inches="tight")
+    if save:
+        os.makedirs("../results", exist_ok=True)
+        plt.savefig("../results/DeepNet.pdf", bbox_inches="tight")
+    else:
+        return plt

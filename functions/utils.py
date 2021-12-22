@@ -10,30 +10,70 @@ from .network import *
 from .plots import *
 
 
-def run_experiment(depth, iterations, reps=100, width=3, cov_scale=1):
+def run_deep_net_experiment(
+    num_iterations,
+    increase_depth=False,
+    increase_width=False,
+    num_reps=100,
+    width=3,
+    cov_scale=1,
+    verbose=False,
+):
     """
-    Main function to run the `Increasing Depth`
-    and `Increasing Width` experiments
+    Main function to run the `Increasing Depth` and `Increasing Width` experiments
+
+    Parameters
+    ----------
+
+    num_iterations: int
+        The number of iterations to keep increasing the depth or width in a single experiment.
+
+    increase_depth: bool, default=False
+        A boolean indicating if it is the increasing depth experiment.
+
+    increase_width: bool, default=False
+        A boolean indicating if it is the increase width experiment.
+
+    num_reps : int
+        The number of repetitions of the experiment.
+
+    width: int, default=3
+        The initial width of the hidden layers.
+
+    verbose: bool, default = False
+        A boolean indicating the production of detailed logging information during training.
+
+    Returns
+    -------
+    results : ndarray
+        An array that consists the result for the `Increasing Width` and `Increasing Depth` experiments.
+        A result object in the results array should have the following attributes:
+            result.num_pars, result.train_err_list, result.test_err_list, result.train_loss_list,
+            result.test_loss_list, result.gini_train, result.gini_test, result.num_polytopes_list
     """
+
+    assert (
+        increase_depth != increase_width
+    ), "Either `increase_depth` or `increase_width` should be true!"
+
     result = lambda: None
 
     xx, yy = np.meshgrid(np.arange(-2, 2, 4 / 100), np.arange(-2, 2, 4 / 100))
     true_posterior = np.array([pdf(x) for x in (np.c_[xx.ravel(), yy.ravel()])])
 
     rep_full_list = []
-    imgs = []
-    #     train_x, train_y, test_x, test_y = get_dataset(cov_scale=cov_scale)
+
     train_x, train_y, test_x, test_y, hybrid_sets = get_dataset(
-        N=1000, cov_scale=cov_scale, include_hybrid=True
+        n_samples=1000, cov_scale=cov_scale, include_hybrid=True
     )
-    depth = depth
+
     penultimate_vars_reps = []
 
-    for rep in range(reps):  # 25
+    for rep in range(num_reps):  # 25
+        if verbose:
+            print("repetition #" + str(rep))
 
-        print("rep: " + str(rep))
-
-        ## Shffle train set labels for activation variation panel
+        ## Shuffle train set labels for activation variation panel
         # train_y_tmp = torch.clone(train_y)
         # train_y[train_y_tmp==0] = 1
         # train_y[train_y_tmp==1] = 0
@@ -41,10 +81,9 @@ def run_experiment(depth, iterations, reps=100, width=3, cov_scale=1):
         # test_y[test_y_tmp==0] = 1
         # test_y[test_y_tmp==1] = 0
 
-        # del train_y_tmp
         losses_list = []
         num_pars = []
-        num_poly = []
+        num_polytopes_list = []
         hellinger_list = []
         gini_train, gini_test = [], []
 
@@ -63,34 +102,33 @@ def run_experiment(depth, iterations, reps=100, width=3, cov_scale=1):
         bias_list = []
         var_list = []
 
-        for i in range(1, iterations):
-            print("now running", i)
+        for i in range(1, num_iterations):
+            if verbose:
+                print("iteration #", i)
 
             ## Increasing Depth
-            if depth:
+            if increase_depth:
                 if i < 5:
-                    model = get_model(
-                        n_hidden=i, hidden_size=i, penultimate=False, bn=False
-                    )
+                    model = get_model(n_hidden=i, hidden_size=i, bn=False)
                 else:
-                    model = get_model(n_hidden=i, penultimate=False, bn=False)
+                    model = get_model(n_hidden=i, bn=False)
             else:
                 ## Increasing Width
-                model = get_model(
-                    hidden_size=i, n_hidden=width, penultimate=False, bn=False
-                )
+                model = get_model(hidden_size=i, n_hidden=width, bn=False)
 
             n_par = sum(p.numel() for p in model.parameters())
 
             losses = train_model(model, train_x, train_y)
 
-            poly, penultimate_act = get_polytopes(model, train_x, penultimate=False)
-            n_poly = len(np.unique(poly[0]))
+            polytopes, penultimate_act = get_polytopes(
+                model, train_x, penultimate=False
+            )
+            num_polytopes = len(np.unique(polytopes[0]))
 
-            if depth:
-                n_node = i * 20 if i > 5 else i * i
+            if increase_depth:
+                num_nodes = i * 20 if i > 5 else i * i
             else:
-                n_node = i * 3
+                num_nodes = i * 3
 
             penultimate_acts.append(penultimate_act)
             penultimate_vars.append(list(np.var(penultimate_act, axis=0)))
@@ -99,11 +137,12 @@ def run_experiment(depth, iterations, reps=100, width=3, cov_scale=1):
                 pred_train, pred_test = model(train_x), model(test_x)
 
                 gini_impurity_train = gini_impurity_mean(
-                    poly[0], torch.sigmoid(pred_train).round().cpu().data.numpy()
+                    polytopes[0], torch.sigmoid(pred_train).round().cpu().data.numpy()
                 )
-                poly_test, _ = get_polytopes(model, test_x, penultimate=False)
+                polytopes_test, _ = get_polytopes(model, test_x, penultimate=False)
                 gini_impurity_test = gini_impurity_mean(
-                    poly_test[0], torch.sigmoid(pred_test).round().cpu().data.numpy()
+                    polytopes_test[0],
+                    torch.sigmoid(pred_test).round().cpu().data.numpy(),
                 )
 
                 rf_posteriors_grid = model(
@@ -121,22 +160,22 @@ def run_experiment(depth, iterations, reps=100, width=3, cov_scale=1):
                 train_y = train_y.type_as(pred_train)
                 test_y = test_y.type_as(pred_test)
                 train_loss = torch.nn.BCEWithLogitsLoss()(pred_train, train_y)
-                #             train_acc = (torch.argmax(pred_train,1) == torch.argmax(train_y,1)).sum().cpu().data.numpy().item() / train_y.size(0)
+                # train_acc = (torch.argmax(pred_train,1) == torch.argmax(train_y,1)).sum().cpu().data.numpy().item() / train_y.size(0)
                 train_acc = (
                     torch.sigmoid(pred_train).round() == train_y
                 ).sum().cpu().data.numpy().item() / train_y.size(0)
                 test_loss = torch.nn.BCEWithLogitsLoss()(pred_test, test_y)
-                #             test_acc = (torch.argmax(pred_test,1) == torch.argmax(test_y,1)).sum().cpu().data.numpy().item() / test_y.size(0)
+                # test_acc = (torch.argmax(pred_test,1) == torch.argmax(test_y,1)).sum().cpu().data.numpy().item() / test_y.size(0)
                 test_acc = (
                     torch.sigmoid(pred_test).round() == test_y
                 ).sum().cpu().data.numpy().item() / test_y.size(0)
 
             ## Uncomment to plot the decision boundaries
-            # plot_decision_boundaries(model, n_node, n_poly, 1-test_acc, method='all', depth=depth)
+            # plot_decision_boundaries(model, num_nodes, num_polytopes, 1-test_acc, plot_type='all', plot_name="depth" if increase_depth else "width")
 
             losses_list.append(losses)
             num_pars.append(n_par)
-            num_poly.append(n_poly)
+            num_polytopes_list.append(num_polytopes)
 
             train_loss_list.append(train_loss.item())
             test_loss_list.append(test_loss.item())
@@ -160,7 +199,7 @@ def run_experiment(depth, iterations, reps=100, width=3, cov_scale=1):
                 train_acc_list,
                 test_acc_list,
                 hellinger_list,
-                num_poly,
+                num_polytopes_list,
                 gini_train,
                 gini_test,
                 avg_stab_list,
@@ -178,7 +217,7 @@ def run_experiment(depth, iterations, reps=100, width=3, cov_scale=1):
         result.test_err_list,
         result.train_err_list,
         result.hellinger_list,
-        result.poly_list,
+        result.num_polytopes_list,
         result.gini_train,
         result.gini_test,
         result.avg_stab,
@@ -412,7 +451,11 @@ def binary_pattern_mat(model, train_x):
   and plot the figure.
 """
 ## Example
-# result_d = run_experiment(depth=True, iterations=20, reps=1)
-# result_w = run_experiment(depth=False, iterations=70, reps=1)
+# result_d = run_deep_net_experiment(increase_depth=True, num_iterations=20, num_reps=1)
+# result_w = run_deep_net_experiment(increase_width=True, num_iterations=70, num_reps=1)
 # results = [result_w, result_d]
-# plot_results(results)
+# titles = [
+#             "DeepNet: Increasing Width",
+#             "DeepNet: Increasing Depth",
+#         ]
+# plot_results(results, titles, save=True)

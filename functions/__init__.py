@@ -1,4 +1,4 @@
-from .utils import run_experiment, get_polytopes, binary_pattern_mat
+from .utils import run_deep_net_experiment, get_polytopes, binary_pattern_mat
 from .plots import plot_results
 from .dataset import get_dataset
 from .network import get_model
