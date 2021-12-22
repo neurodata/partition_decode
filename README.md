@@ -1,10 +1,10 @@
 # Partition & Decode: an implicit internal representation framework
 
 [![arXiv](https://img.shields.io/badge/arXiv--red.svg?style=flat)](https://arxiv.org/abs/)
-<!-- [![CircleCI](https://circleci.com/gh/neurodata/pd-paper/tree/main.svg?style=shield)](https://circleci.com/gh/neurodata/pd-paper/tree/main) -->
-<!-- [![Netlify](https://img.shields.io/netlify/)](https://app.netlify.com/sites/pd/deploys) -->
+[![CircleCI](https://circleci.com/gh/neurodata/pd-paper/tree/main.svg?style=shield)](https://circleci.com/gh/neurodata/pd-paper/tree/main)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License](https://img.shields.io/badge/License-MIT-blue)](https://opensource.org/licenses/MIT)
+<!-- [![Netlify](https://img.shields.io/netlify/)](https://app.netlify.com/sites/pd/deploys) -->
 
 **P**artition **&** **D**ecode: a framework that formalizes an implicit internal representation of parametric and nonparametric models, including Deep Networks and Random Forests.
 
