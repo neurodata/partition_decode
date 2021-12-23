@@ -1,4 +1,4 @@
-from .dn_utils import run_dn_experiment, get_polytopes, binary_pattern_mat
+from .dn_utils import run_dn_experiment, get_polytopes, run_internal_rep_experiment
 from .df_utils import run_df_experiment, read_df_results
 from .plots import plot_dn_results, plot_df_results
 from .dataset import get_dataset
@@ -11,7 +11,7 @@ from .metrics import (
     compute_df_gini_mean,
     get_gini_list,
 )
-from .network import get_model
+from .network import get_model, train_model
 from .forest import get_tree, train_forest
 
 

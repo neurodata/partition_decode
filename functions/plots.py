@@ -167,7 +167,7 @@ def plot_dn_results(results, titles=None, save=True):
         An array that consists the result for the `Increasing Width` and `Increasing Depth` experiments.
         A result object in the results array should have the following attributes:
             result.n_pars, result.train_err_list, result.test_err_list, result.train_loss_list,
-            result.test_loss_list, result.gini_train, result.gini_test, result.n_polytopes_list
+            result.test_loss_list, result.gini_train_list, result.gini_test_list, result.n_polytopes_list
 
     titles: ndarray, default=None
         Array of titles for the panels. Should have same length as `results`.
@@ -212,7 +212,7 @@ def plot_dn_results(results, titles=None, save=True):
         metric_list = [
             (result.train_err_list, result.test_err_list),
             (result.train_loss_list, result.test_loss_list),
-            (result.gini_train, result.gini_test),
+            (result.gini_train_list, result.gini_test_list),
             result.n_polytopes_list,
         ]
         metric_ylab = [
