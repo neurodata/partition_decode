@@ -26,7 +26,7 @@ def generate_gaussian_parity(
     n_samples : int
         Total number of points divided among the four clusters with equal probability.
 
-    means : array of shape [n_centers,2], default=None
+    means : ndarray of shape [n_centers,2], default=None
         The coordinates of the center of total n_centers blobs.
 
     cov_scale : float, default=1
@@ -51,8 +51,11 @@ def generate_gaussian_parity(
     if random_state != None:
         np.random.seed(random_state)
 
-    if means == None:
+    if means is None:
         means = [[-1, -1], [1, 1], [1, -1], [-1, 1]]
+
+    if angle_params is None:
+        angle_params = np.random.uniform(0, 2 * np.pi)
 
     blob = np.concatenate(
         [
@@ -94,7 +97,7 @@ def get_dataset(
     cov_scale : float, default=1
         The standard deviation of the blobs.
 
-    include_hybrid: bool, default=None
+    include_hybrid: bool, default=False
         A boolean indicating if hybrid set should be included for computing average stability.
 
     random_state : int, RandomState instance, default=None
@@ -123,7 +126,10 @@ def get_dataset(
 
     if include_hybrid:
         D_x, D_y = generate_gaussian_parity(
-            cov_scale=cov_scale, n_samples=(2 * n_samples), angle_params=0
+            cov_scale=cov_scale,
+            n_samples=(2 * n_samples),
+            angle_params=0,
+            random_state=random_state,
         )
         D_perm = np.random.permutation(2 * n_samples)
         D_x, D_y = D_x[D_perm, :], D_y[D_perm]
@@ -141,13 +147,19 @@ def get_dataset(
             hybrid_sets.append((hybrid_x, hybrid_y))
     else:
         train_x, train_y = generate_gaussian_parity(
-            cov_scale=cov_scale, n_samples=n_samples, angle_params=0
+            cov_scale=cov_scale,
+            n_samples=n_samples,
+            angle_params=0,
+            random_state=random_state,
         )
         train_perm = np.random.permutation(n_samples)
         train_x, train_y = train_x[train_perm, :], train_y[train_perm]
 
     test_x, test_y = generate_gaussian_parity(
-        cov_scale=cov_scale, n_samples=2 * n_samples, angle_params=0
+        cov_scale=cov_scale,
+        n_samples=2 * n_samples,
+        angle_params=0,
+        random_state=random_state,
     )
 
     test_perm = np.random.permutation(2 * n_samples)
