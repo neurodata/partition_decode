@@ -14,16 +14,16 @@ with open("requirements.txt", mode="r", encoding="utf8") as f:
     REQUIREMENTS = f.read()
 
 setup(
-    name="double_descent",
+    name="partition_decode",
     version=VERSION,
     author="Kaleab A Kinfu",
     author_email="kinfu@jhu.edu",
     maintainer="Kaleab A Kinfu",
     maintainer_email="kinfu@jhu.edu",
-    description="A package for doing the double descent experiment in RF and DN.",
+    description="A package for Partition & Decode, an implicit internal representation framework",
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
-    url="https://github.com/neurodata/double_descent.git",
+    url="https://github.com/neurodata/partition_decode.git",
     license="MIT",
     classifiers=[
         "Intended Audience :: Science/Research",
