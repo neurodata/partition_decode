@@ -143,5 +143,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# results folder
+# results and plots folder
 results/*
+polytopes/*
