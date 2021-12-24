@@ -105,7 +105,7 @@ def run_dn_experiment(
         bias_list = []
         var_list = []
 
-        for i in range(1, n_iterations):
+        for i in range(1, n_iterations + 1):
             if verbose:
                 print("iteration #", i)
 
@@ -364,7 +364,7 @@ def run_internal_rep_experiment(
 
         gen_gap_list = []
 
-        for i in range(1, n_iterations):  # 20
+        for i in range(1, n_iterations + 1):  # 20
             if verbose:
                 print("running iteration #", i)
 
@@ -421,8 +421,9 @@ def run_internal_rep_experiment(
             test_acc_list.append(1 - test_acc)
 
             gen_gap = abs((1 - test_acc) - (1 - train_acc))
+            gen_gap_list.append(gen_gap)
 
-            internal_rep_matrices(
+            update_internal_rep_matrices(
                 model,
                 train_x,
                 pred_train,
@@ -431,7 +432,7 @@ def run_internal_rep_experiment(
                 train_internal_matrices,
                 train_penultimate_matrices,
             )
-            internal_rep_matrices(
+            update_internal_rep_matrices(
                 model,
                 test_x,
                 pred_test,
@@ -440,8 +441,6 @@ def run_internal_rep_experiment(
                 test_internal_matrices,
                 test_penultimate_matrices,
             )
-
-            gen_gap_list.append(gen_gap)
 
     return {
         "train_internal_matrices": train_internal_matrices,
@@ -480,7 +479,7 @@ def binary_pattern_mat(model, train_x):
 
 
 # internal representation helper function
-def internal_rep_matrices(
+def update_internal_rep_matrices(
     model,
     data,
     preds,
@@ -506,11 +505,11 @@ def internal_rep_matrices(
     unique_poly_pattern = [unique_polytopes, unique_pattern]
 
     for i in range(len(matrices)):
-        for key in matrices[i]:
+        for key in matrices[i].keys():
             L_mat = np.zeros((len(poly_pattern[i]), len(unique_poly_pattern[i])))
             for idx, polytope_i in enumerate(poly_pattern[i]):
                 polytope_idx = np.where(unique_poly_pattern[i] == polytope_i)
-                print(len(polytope_idx))
+
                 if key == "0/1":
                     L_mat[idx, polytope_idx] = 1  # pred_label[idx]
                 elif key == "true_label":
@@ -519,7 +518,7 @@ def internal_rep_matrices(
                     L_mat[idx, polytope_idx] = 2 * pred_label[idx] - 1
                 elif key == "est_poster":
                     L_mat[idx, polytope_idx] = 2 * pred_poster[idx] - 1
-        matrices[i][key].append(L_mat)
+            matrices[i][key].append(L_mat)
 
 
 """
