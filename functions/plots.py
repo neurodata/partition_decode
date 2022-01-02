@@ -230,10 +230,10 @@ def plot_dn_results(results, titles=None, save=True):
             ax = axes[j, i]
             if isinstance(metric, tuple):
 
-                metric = [
-                    (np.array(m[0], dtype=float), np.array(m[1], dtype=float))
-                    for m in metric
-                ]
+                metric = (
+                    np.array(metric[0], dtype=float),
+                    np.array(metric[1], dtype=float),
+                )
 
                 ax.plot(
                     result.n_pars,
@@ -372,10 +372,11 @@ def plot_df_results(results, titles=None, save=True):
         for j, metric in enumerate(metric_list):
             ax = axes[j, i]
             if isinstance(metric, tuple):
-                metric = [
-                    (np.array(m[0], dtype=float), np.array(m[1], dtype=float))
-                    for m in metric
-                ]
+
+                metric = (
+                    np.array(metric[0], dtype=float),
+                    np.array(metric[1], dtype=float),
+                )
 
                 ax.plot(
                     result.n_nodes,
