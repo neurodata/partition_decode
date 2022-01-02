@@ -4,6 +4,8 @@ from sklearn.metrics import log_loss
 from .dataset import generate_gaussian_parity
 from .metrics import compute_df_gini_mean, compute_hellinger_dist
 from tqdm import tqdm
+import os
+from datetime import datetime
 
 
 def get_tree(
@@ -73,7 +75,7 @@ def train_forest(
     verbose=False,
 ):
     if verbose:
-        print(exp_rep_i)
+        print("Experiment #: ", exp_rep_i)
 
     X_train, y_train = generate_gaussian_parity(
         n_samples=train_n_samples, angle_params=0
@@ -130,8 +132,13 @@ def train_forest(
     gini_score_test = np.array(gini_score_test)
     hellinger_dist = np.array(hellinger_dist)
 
+    path = "../results/df/" + exp_name + "/"
+    datetime_now = datetime.now(tz=None)
+    datetime_str = datetime_now.strftime("%m_%d_%Y_%H_%M_%S")
+    os.makedirs(path, exist_ok=True)
+
     np.save(
-        "../results/xor_rf_dd_" + exp_name + "_" + str(exp_rep_i) + ".npy",
+        path + str(exp_rep_i) + "_" + datetime_str + ".npy",
         [
             nodes,
             polytopes,

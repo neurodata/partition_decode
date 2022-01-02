@@ -223,9 +223,18 @@ def plot_dn_results(results, titles=None, save=True):
             # "Hellinger distance",
         ]
 
+        result.n_pars = np.array(result.n_pars, dtype=float)
+
         for j, metric in enumerate(metric_list):
+
             ax = axes[j, i]
             if isinstance(metric, tuple):
+
+                metric = [
+                    (np.array(m[0], dtype=float), np.array(m[1], dtype=float))
+                    for m in metric
+                ]
+
                 ax.plot(
                     result.n_pars,
                     np.median(metric[0], 0).clip(min=0),
@@ -252,6 +261,7 @@ def plot_dn_results(results, titles=None, save=True):
                     alpha=0.2,
                 )
             else:
+                metric = np.array(metric, dtype=float)
                 ax.plot(result.n_pars, np.median(metric, 0).clip(min=0), linewidth=2)
                 ax.fill_between(
                     result.n_pars,
@@ -358,9 +368,15 @@ def plot_df_results(results, titles=None, save=True):
             "Hellinger distance",
         ]
 
+        result.n_nodes = np.array(result.n_nodes, dtype=float)
         for j, metric in enumerate(metric_list):
             ax = axes[j, i]
             if isinstance(metric, tuple):
+                metric = [
+                    (np.array(m[0], dtype=float), np.array(m[1], dtype=float))
+                    for m in metric
+                ]
+
                 ax.plot(
                     result.n_nodes,
                     np.median(metric[0], 0).clip(min=0),
@@ -387,6 +403,7 @@ def plot_df_results(results, titles=None, save=True):
                     alpha=0.2,
                 )
             else:
+                metric = np.array(metric, dtype=float)
                 ax.plot(result.n_nodes, np.median(metric, 0).clip(min=0), linewidth=2)
                 ax.fill_between(
                     result.n_nodes,

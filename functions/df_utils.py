@@ -6,9 +6,10 @@ import multiprocessing
 from .dataset import generate_gaussian_parity
 from .forest import train_forest, get_tree
 from .metrics import compute_true_posterior
+import os
 
 
-def run_df_experiment(
+def run_df_experiments(
     train_n_samples=4096,
     test_n_samples=1000,
     n_reps=100,
@@ -17,9 +18,9 @@ def run_df_experiment(
     exp_alias="deep",
 ):
 
-    xx, yy = np.meshgrid(np.arange(-2, 2, 4 / 100), np.arange(-2, 2, 4 / 100))
-    true_posterior = np.array(
-        [compute_true_posterior(x) for x in (np.c_[xx.ravel(), yy.ravel()])]
+    grid_xx, grid_yy = np.meshgrid(np.arange(-2, 2, 4 / 100), np.arange(-2, 2, 4 / 100))
+    grid_true_posterior = np.array(
+        [compute_true_posterior(x) for x in (np.c_[grid_xx.ravel(), grid_yy.ravel()])]
     )
 
     train_mean_error, test_mean_error = [], []
@@ -72,9 +73,9 @@ def run_df_experiment(
             hellinger_dist[rep_i],
         ] = train_forest(
             method,
-            xx,
-            yy,
-            true_posterior,
+            grid_xx,
+            grid_yy,
+            grid_true_posterior,
             rep_i,
             train_n_samples=train_n_samples,
             test_n_samples=test_n_samples,
@@ -108,6 +109,14 @@ def run_df_experiment(
 
 
 def read_df_results(n_reps, exp_alias="depth"):
+
+    dir_path = "../results/df/" + exp_alias + "/"
+    file_paths = []
+    for root, dirs, files in os.walk(dir_path):
+        for file in files:
+            if file.endswith(".npy"):
+                file_paths.append(os.path.join(root, file))
+
     result = lambda: None
     train_error, test_error = [list() for _ in range(n_reps)], [
         list() for _ in range(n_reps)
@@ -133,7 +142,10 @@ def read_df_results(n_reps, exp_alias="depth"):
             gini_score_train[rep_i],
             gini_score_test[rep_i],
             hellinger_dist[rep_i],
-        ] = np.load("../results/xor_rf_dd_" + exp_alias + "_" + str(rep_i) + ".npy")
+        ] = np.load(
+            file_paths[rep_i],
+        )
+        # np.load("../results/xor_rf_dd_" + exp_alias + "_" + str(rep_i) + ".npy")
 
     result.train_err_list = np.array(train_error)  # .mean(axis=0)
     result.test_err_list = np.array(test_error)  # .mean(axis=0)

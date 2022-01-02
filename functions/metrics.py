@@ -137,17 +137,17 @@ def compute_avg_stability(model, hybrid_set):
     return stab_dif / N
 
 
-def compute_gini_mean(polytope_memberships, predicts):
+def compute_gini_mean(polytope_memberships, labels):
     """
     Compute the mean Gini impurity based on
     the polytope membership of the points and
-    the model prediction of the labels.
+    the labels.
     """
     gini_mean_score = []
 
     for l in np.unique(polytope_memberships):
 
-        cur_l_idx = predicts[polytope_memberships == l]
+        cur_l_idx = labels[polytope_memberships == l]
         pos_count = np.sum(cur_l_idx)
         neg_count = len(cur_l_idx) - pos_count
         gini = gini_impurity(pos_count, neg_count)
@@ -156,7 +156,7 @@ def compute_gini_mean(polytope_memberships, predicts):
     return np.array(gini_mean_score).mean()
 
 
-def get_gini_list(polytope_memberships, predicts):
+def get_gini_list(polytope_memberships, labels):
     """
     Computes the Gini impurity same as compute_gini_mean
     but returns the whole list
@@ -165,7 +165,7 @@ def get_gini_list(polytope_memberships, predicts):
 
     for l in np.unique(polytope_memberships):
         idx = np.where(polytope_memberships == l)[0]
-        cur_l_idx = predicts[polytope_memberships == l]
+        cur_l_idx = labels[polytope_memberships == l]
         pos_count = np.sum(cur_l_idx)
         neg_count = len(cur_l_idx) - pos_count
         gini = gini_impurity(pos_count, neg_count)
@@ -179,14 +179,19 @@ Decision Forest metrics
 """
 
 
-def compute_df_gini_mean(model, data, label):
+def compute_df_gini_mean(model, data, labels):
+    """
+    Compute the mean Gini impurity based on
+    the leaf indices the data points result in and
+    the labels.
+    """
+
     leaf_idxs = model.apply(data)
-    predict = label
     gini_mean_score = []
     for t in range(leaf_idxs.shape[1]):
         gini_arr = []
         for l in np.unique(leaf_idxs[:, t]):
-            cur_l_idx = predict[leaf_idxs[:, t] == l]
+            cur_l_idx = labels[leaf_idxs[:, t] == l]
             pos_count = np.sum(cur_l_idx)
             neg_count = len(cur_l_idx) - pos_count
             gini = gini_impurity(pos_count, neg_count)
