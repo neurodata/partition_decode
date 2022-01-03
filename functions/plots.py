@@ -185,7 +185,7 @@ def plot_dn_results(results, titles=None, save=True):
     fontsize = 20
     ticksize = 20
 
-    bayes_err = 0.25
+    bayes_err = 0.26
 
     # Figure params
     fontsize = 22
@@ -273,7 +273,7 @@ def plot_dn_results(results, titles=None, save=True):
             ax.axvline(x=1000, color="gray", alpha=0.6)
             if j == 0:
                 ax.set_title(titles[i], fontsize=fontsize + 2)
-                # ax.axhline(y=bayes_err, color='gray', linestyle='--')
+                ax.axhline(y=bayes_err, color="gray", linestyle="--")
 
             if i == 0:
                 ax.set_ylabel(metric_ylab[j], fontsize=fontsize)
@@ -295,7 +295,9 @@ def plot_dn_results(results, titles=None, save=True):
         frameon=False,
     )
 
-    # plt.text(2.8, -0.0490, "Total parameters", ha="center", fontsize=fontsize)
+    fig.supxlabel(
+        "Total parameters", fontsize=fontsize, verticalalignment="bottom", y=-0.01
+    )
     sns.despine()
     if save:
         os.makedirs("../results", exist_ok=True)
@@ -333,7 +335,7 @@ def plot_df_results(results, titles=None, save=True):
     fontsize = 20
     ticksize = 20
 
-    bayes_err = 0.25
+    bayes_err = 0.26
 
     # Figure params
     fontsize = 22
@@ -438,7 +440,7 @@ def plot_df_results(results, titles=None, save=True):
         frameon=False,
     )
 
-    # plt.text(2.8, -0.0490, "Total nodes", ha="center", fontsize=fontsize)
+    fig.supxlabel("Total nodes", fontsize=fontsize, verticalalignment="bottom", y=-0.01)
     sns.despine()
     if save:
         os.makedirs("../results", exist_ok=True)
