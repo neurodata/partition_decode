@@ -3,7 +3,7 @@ import os
 
 # Find mgc version.
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-for line in open(os.path.join(PROJECT_PATH, "functions", "__init__.py")):
+for line in open(os.path.join(PROJECT_PATH, "partition_decode", "__init__.py")):
     if line.startswith("__version__ = "):
         VERSION = line.strip().split()[2][1:-1]
 
