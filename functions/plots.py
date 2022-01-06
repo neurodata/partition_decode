@@ -418,7 +418,7 @@ def plot_df_results(results, titles=None, save=True):
             ax.axvline(x=1000, color="gray", alpha=0.6)
             if j == 0:
                 ax.set_title(titles[i], fontsize=fontsize + 2)
-                # ax.axhline(y=bayes_err, color='gray', linestyle='--')
+                ax.axhline(y=bayes_err, color="gray", linestyle="--")
 
             if i == 0:
                 ax.set_ylabel(metric_ylab[j], fontsize=fontsize)

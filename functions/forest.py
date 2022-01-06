@@ -110,7 +110,7 @@ def train_forest(
                 sum([estimator.get_n_leaves() for estimator in model.estimators_])
             )
         leaf_idxs = model.apply(X_train)
-        polytopes.append(len(np.unique(leaf_idxs)))
+        polytopes.append(len(np.unique(leaf_idxs, axis=0)))
         gini_score_train.append(compute_df_gini_mean(model, X_train, y_train))
         gini_score_test.append(compute_df_gini_mean(model, X_test, y_test))
         train_error.append(1 - model.score(X_train, y_train))
